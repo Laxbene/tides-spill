@@ -84,7 +84,7 @@ if st.session_state.answered:
         st.warning(f"Sehr nah dran! Nur {diff} Jahre daneben. Es war {correct}. (+5 Punkte)")
         st.session_state.score += 5
     else:
-        st.error(f"Leider weit weg. Die Differenz beträgt {diff} Jahre. Es war {correct}.")
+        st.error(f"Leck eier. Die Differenz beträgt {diff} Jahre. Es war {correct}.")
 
     if st.button("Nächstes Ereignis ➡️", use_container_width=True):
         next_question()
