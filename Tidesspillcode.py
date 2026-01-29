@@ -1,99 +1,141 @@
 import streamlit as st
 import random
 
-# --- DATEN ---
-HISTORICAL_EVENTS = [
-    {"event": "Ende des 2. Weltkriegs", "year": 1945},
-    {"event": "Fall der Berliner Mauer", "year": 1989},
-    {"event": "Französische Revolution", "year": 1789},
-    {"event": "Mondlandung", "year": 1969},
-    {"event": "Entdeckung Amerikas", "year": 1492},
-    {"event": "Bau der Chinesischen Mauer", "year": -214},
-    {"event": "Untergang der Titanic", "year": 1912},
-    {"event": "Bau der Pyramiden von Gizeh (ca.)", "year": -2560},
-    {"event": "Erfindung der Keilschrift (ca.)", "year": -3400},
-    {"event": "Gründung von Rom (Sage)", "year": -753}
-]
+# --- STYLING (Custom CSS für Hitster-Look) ---
+st.set_page_config(page_title="History Hitster", page_icon="🎸", layout="centered")
 
-def initialize_game():
+st.markdown("""
+<style>
+    .main {
+        background-color: #121212;
+        color: white;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 20px;
+        height: 3em;
+        background-color: #FF4B4B;
+        color: white;
+        font-weight: bold;
+        border: none;
+    }
+    .hitster-card {
+        background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        border: 2px solid #333;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        margin-bottom: 25px;
+    }
+    .event-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #FFFFFF;
+        margin-bottom: 10px;
+    }
+    .year-display {
+        font-size: 48px;
+        font-weight: 800;
+        color: #FF4B4B;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- DATEN ---
+if 'events' not in st.session_state:
+    st.session_state.events = [
+        {"event": "Bau der Pyramiden von Gizeh", "year": -2560},
+        {"event": "Gründung von Rom", "year": -753},
+        {"event": "Untergang von Pompeji", "year": 79},
+        {"event": "Krönung Karls des Großen", "year": 800},
+        {"event": "Entdeckung Amerikas", "year": 1492},
+        {"event": "Französische Revolution", "year": 1789},
+        {"event": "Untergang der Titanic", "year": 1912},
+        {"event": "Mondlandung (Apollo 11)", "year": 1969},
+        {"event": "Mauerfall in Berlin", "year": 1989},
+        {"event": "Einführung des iPhones", "year": 2007}
+    ]
+
+def init_game():
     if 'score' not in st.session_state:
         st.session_state.score = 0
     if 'current_event' not in st.session_state:
-        st.session_state.current_event = random.choice(HISTORICAL_EVENTS)
-    if 'answered' not in st.session_state:
-        st.session_state.answered = False
+        st.session_state.current_event = random.choice(st.session_state.events)
+    if 'phase' not in st.session_state:
+        st.session_state.phase = "guess" # guess oder result
 
-def next_question():
-    st.session_state.current_event = random.choice(HISTORICAL_EVENTS)
-    st.session_state.answered = False
+def reset_round():
+    st.session_state.current_event = random.choice(st.session_state.events)
+    st.session_state.phase = "guess"
     st.rerun()
 
-# --- UI SETUP ---
-st.set_page_config(page_title="History Timeline", layout="wide")
+init_game()
 
-initialize_game()
+# --- HEADER ---
+st.title("🎸 History Hitster")
+st.write(f"Dein Punktestand: **{st.session_state.score}**")
 
-st.title("⏳ Der ultimative Zeitstrahl (-5000 bis heute)")
-st.sidebar.metric("Gesamt-Score", st.session_state.score)
-
+# --- SPIELFELD ---
 event = st.session_state.current_event
 
-# Ereignis-Anzeige
-st.markdown(f"### Aktuelles Ereignis:")
-st.info(f"## {event['event']}")
+# Die "Karte"
+st.markdown(f"""
+    <div class="hitster-card">
+        <div style="font-size: 0.8em; color: #888; text-transform: uppercase; letter-spacing: 2px;">Historisches Ereignis</div>
+        <div class="event-title">{event['event']}</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- DER ZEITSTRAHL ---
-st.write("---")
-if not st.session_state.answered:
-    # Grobe Auswahl über Slider
-    slider_val = st.slider("Wähle den ungefähren Zeitpunkt:", -5000, 2025, 0)
+if st.session_state.phase == "guess":
+    # Zeitstrahl Slider
+    st.write("### Ordne das Ereignis ein:")
+    user_guess = st.slider("", -3000, 2025, 1900, step=1, help="Schiebe den Regler zum richtigen Jahr")
     
-    # Feinjustierung (Wichtig, da der Slider bei 7000 Jahren Range springt)
-    user_guess = st.number_input("Feinjustierung (genaues Jahr):", value=slider_val)
-    
-    if st.button("Antwort einloggen 🔒", use_container_width=True):
-        st.session_state.answered = True
-        st.session_state.last_guess = user_guess
+    # Feinjustierung für mobiles Tippen / Präzision
+    fine_tune = st.number_input("Präzise Jahreszahl eingeben:", value=user_guess)
+
+    if st.button("RAUS MIT DER KARTE!"):
+        st.session_state.guess = fine_tune
+        st.session_state.phase = "result"
         st.rerun()
 
-# --- GRAFISCHE AUSWERTUNG ---
-if st.session_state.answered:
-    guess = st.session_state.last_guess
+else:
+    # RESULTAT PHASE
+    guess = st.session_state.guess
     correct = event['year']
     diff = abs(guess - correct)
     
-    # Spalten für die visuelle Gegenüberstellung
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Deine Schätzung", guess)
-    col2.metric("Tatsächliches Jahr", correct, delta=int(guess-correct)*-1)
-    
-    # Grafischer Balken: Wie nah warst du dran? (Logarithmisch gedacht)
-    # 0 Differenz = 100% Fortschrittsbalken
-    proximity = max(0, 100 - (diff / 10)) # Nur als visuelles Gimmick
-    st.write("**Deine Genauigkeit:**")
-    st.progress(min(int(proximity), 100))
+    st.markdown(f"""
+        <div class="hitster-card" style="border-color: {'#28a745' if diff <= 10 else '#dc3545'}">
+            <div style="color: #888;">Das richtige Jahr war:</div>
+            <div class="year-display">{correct}</div>
+            <div style="margin-top: 10px;">Deine Schätzung: {guess}</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Visueller Zeitstrahl-Vergleich
-    # Wir zeigen einen kleinen Ausschnitt der Geschichte als Grafik-Ersatz
-    st.write("---")
-    
     if diff == 0:
-        st.success(f"🎯 Volltreffer! Es war genau {correct}. (+20 Punkte)")
-        st.session_state.score += 20
+        st.success("🎯 Wahnsinn! Ein direkter Hit! +20 Punkte")
+        points = 20
+    elif diff <= 10:
+        st.info(f"✨ Sehr nah dran! Nur {diff} Jahre Differenz. +10 Punkte")
+        points = 10
     elif diff <= 50:
-        st.warning(f"Sehr nah dran! Nur {diff} Jahre daneben. Es war {correct}. (+5 Punkte)")
-        st.session_state.score += 5
+        st.warning(f"Oha, {diff} Jahre daneben. Aber okay. +2 Punkte")
+        points = 2
     else:
-        st.error(f"Leck eier. Die Differenz beträgt {diff} Jahre. Es war {correct}.")
+        st.error(f"Leider weit daneben ({diff} Jahre). 0 Punkte.")
+        points = 0
+    
+    if st.button("Nächste Karte ziehen ➡️"):
+        st.session_state.score += points
+        reset_round()
 
-    if st.button("Nächstes Ereignis ➡️", use_container_width=True):
-        next_question()
-
-# Sidebar Anleitung
+# --- SIDEBAR ---
 with st.sidebar:
-    st.markdown("""
-    **Legende:**
-    * 0 Jahre Diff: 20 Pkt
-    * bis 50 Jahre: 5 Pkt
-    * darüber: 0 Pkt
-    """)
+    st.header("Einstellungen")
+    if st.button("Spiel neustarten"):
+        st.session_state.score = 0
+        reset_round()
+    st.markdown("---")
+    st.write("Versuche so nah wie möglich an das Jahr heranzukommen. Je näher du bist, desto mehr Punkte gibt es!")
