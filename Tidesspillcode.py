@@ -3,16 +3,16 @@ import random
 
 # --- DATEN ---
 HISTORICAL_EVENTS = [
-    {"event": "Ende des 2. Weltkriegs", "year": 1945, "range": (1900, 2025)},
-    {"event": "Der Fall der Berliner Mauer", "year": 1989, "range": (1900, 2025)},
-    {"event": "Die Französische Revolution", "year": 1789, "range": (1700, 1900)},
-    {"event": "Landung auf dem Mond", "year": 1969, "range": (1900, 2025)},
-    {"event": "Entdeckung Amerikas", "year": 1492, "range": (1000, 1600)},
-    {"event": "Beginn der Französischen Revolution", "year": 1789, "range": (1700, 1850)},
-    {"event": "Bau der Chinesischen Mauer", "year": -214, "range": (-500, 500)},
-    {"event": "Untergang der Titanic", "year": 1912, "range": (1850, 1950)},
-    {"event": "Gründung von Rom", "year": -753, "range": (-1000, 0)},
-    {"event": "Erfindung des iPhone", "year": 2007, "range": (1990, 2025)}
+    {"event": "Ende des 2. Weltkriegs", "year": 1945},
+    {"event": "Fall der Berliner Mauer", "year": 1989},
+    {"event": "Französische Revolution", "year": 1789},
+    {"event": "Mondlandung", "year": 1969},
+    {"event": "Entdeckung Amerikas", "year": 1492},
+    {"event": "Bau der Chinesischen Mauer", "year": -214},
+    {"event": "Untergang der Titanic", "year": 1912},
+    {"event": "Bau der Pyramiden von Gizeh (ca.)", "year": -2560},
+    {"event": "Erfindung der Keilschrift (ca.)", "year": -3400},
+    {"event": "Gründung von Rom (Sage)", "year": -753}
 ]
 
 def initialize_game():
@@ -28,59 +28,72 @@ def next_question():
     st.session_state.answered = False
     st.rerun()
 
-# --- UI ---
-st.set_page_config(page_title="History Slider", layout="centered")
+# --- UI SETUP ---
+st.set_page_config(page_title="History Timeline", layout="wide")
+
 initialize_game()
 
-st.title("🎯 History Timeline Slider")
-st.write(f"Aktueller Score: **{st.session_state.score}**")
+st.title("⏳ Der ultimative Zeitstrahl (-5000 bis heute)")
+st.sidebar.metric("Gesamt-Score", st.session_state.score)
 
 event = st.session_state.current_event
 
-# Card-Design für das Ereignis
-st.markdown(f"""
-<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b;">
-    <h2 style="margin: 0;">{event['event']}</h2>
-</div>
-""", unsafe_allow_html=True)
+# Ereignis-Anzeige
+st.markdown(f"### Aktuelles Ereignis:")
+st.info(f"## {event['event']}")
 
-st.write("") # Abstand
-
-# --- DER ZEITSTRAHL (SLIDER) ---
-# Wir nutzen den Range aus den Daten, damit der Slider immer Sinn macht
-min_year, max_year = event['range']
-
+# --- DER ZEITSTRAHL ---
+st.write("---")
 if not st.session_state.answered:
-    # Der Slider als Zeitlinie
-    user_guess = st.slider(
-        "Bewege den Regler auf das richtige Jahr:",
-        min_value=min_year,
-        max_value=max_year,
-        value=sum(event['range']) // 2 # Startet in der Mitte des Bereichs
-    )
+    # Grobe Auswahl über Slider
+    slider_val = st.slider("Wähle den ungefähren Zeitpunkt:", -5000, 2025, 0)
     
-    if st.button("Zeitpunkt festlegen 📍", use_container_width=True):
+    # Feinjustierung (Wichtig, da der Slider bei 7000 Jahren Range springt)
+    user_guess = st.number_input("Feinjustierung (genaues Jahr):", value=slider_val)
+    
+    if st.button("Antwort einloggen 🔒", use_container_width=True):
         st.session_state.answered = True
         st.session_state.last_guess = user_guess
         st.rerun()
 
-# --- AUSWERTUNG ---
+# --- GRAFISCHE AUSWERTUNG ---
 if st.session_state.answered:
     guess = st.session_state.last_guess
     correct = event['year']
     diff = abs(guess - correct)
     
-    # Anzeige der Positionen
-    st.info(f"Deine Wahl: **{guess}** | Lösung: **{correct}**")
+    # Spalten für die visuelle Gegenüberstellung
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Deine Schätzung", guess)
+    col2.metric("Tatsächliches Jahr", correct, delta=int(guess-correct)*-1)
+    
+    # Grafischer Balken: Wie nah warst du dran? (Logarithmisch gedacht)
+    # 0 Differenz = 100% Fortschrittsbalken
+    proximity = max(0, 100 - (diff / 10)) # Nur als visuelles Gimmick
+    st.write("**Deine Genauigkeit:**")
+    st.progress(min(int(proximity), 100))
+
+    # Visueller Zeitstrahl-Vergleich
+    # Wir zeigen einen kleinen Ausschnitt der Geschichte als Grafik-Ersatz
+    st.write("---")
     
     if diff == 0:
-        st.success("🎯 Perfekt! Du bist ein Historiker!")
-        st.session_state.score += 10
-    elif diff <= 3:
-        st.warning(f"Fast! Nur {diff} Jahre daneben.")
+        st.success(f"🎯 Volltreffer! Es war genau {correct}. (+20 Punkte)")
+        st.session_state.score += 20
+    elif diff <= 50:
+        st.warning(f"Sehr nah dran! Nur {diff} Jahre daneben. Es war {correct}. (+5 Punkte)")
         st.session_state.score += 5
     else:
-        st.error(f"Leider daneben. Differenz: {diff} Jahre.")
+        st.error(f"Leider weit weg. Die Differenz beträgt {diff} Jahre. Es war {correct}.")
 
     if st.button("Nächstes Ereignis ➡️", use_container_width=True):
         next_question()
+
+# Sidebar Anleitung
+with st.sidebar:
+    st.markdown("""
+    **Legende:**
+    * 0 Jahre Diff: 20 Pkt
+    * bis 50 Jahre: 5 Pkt
+    * darüber: 0 Pkt
+    """)
