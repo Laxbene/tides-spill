@@ -1,18 +1,18 @@
 import streamlit as st
 import random
 
-# --- KONFIGURATION & DATEN ---
+# --- DATEN ---
 HISTORICAL_EVENTS = [
-    {"event": "Ende des 2. Weltkriegs", "year": 1945},
-    {"event": "Der Fall der Berliner Mauer", "year": 1989},
-    {"event": "Die Französische Revolution", "year": 1789},
-    {"event": "Landung der ersten Menschen auf dem Mond", "year": 1969},
-    {"event": "Entdeckung Amerikas durch Kolumbus", "year": 1492},
-    {"event": "Beginn des Baues der Chinesischen Mauer (Qin-Dynastie)", "year": -214},
-    {"event": "Einführung des Euro als Bargeld", "year": 2002},
-    {"event": "Untergang der Titanic", "year": 1912},
-    {"event": "Krönung Karls des Großen zum Kaiser", "year": 800},
-    {"event": "Erfindung des Buchdrucks (Johannes Gutenberg)", "year": 1440}
+    {"event": "Ende des 2. Weltkriegs", "year": 1945, "range": (1900, 2025)},
+    {"event": "Der Fall der Berliner Mauer", "year": 1989, "range": (1900, 2025)},
+    {"event": "Die Französische Revolution", "year": 1789, "range": (1700, 1900)},
+    {"event": "Landung auf dem Mond", "year": 1969, "range": (1900, 2025)},
+    {"event": "Entdeckung Amerikas", "year": 1492, "range": (1000, 1600)},
+    {"event": "Beginn der Französischen Revolution", "year": 1789, "range": (1700, 1850)},
+    {"event": "Bau der Chinesischen Mauer", "year": -214, "range": (-500, 500)},
+    {"event": "Untergang der Titanic", "year": 1912, "range": (1850, 1950)},
+    {"event": "Gründung von Rom", "year": -753, "range": (-1000, 0)},
+    {"event": "Erfindung des iPhone", "year": 2007, "range": (1990, 2025)}
 ]
 
 def initialize_game():
@@ -22,77 +22,65 @@ def initialize_game():
         st.session_state.current_event = random.choice(HISTORICAL_EVENTS)
     if 'answered' not in st.session_state:
         st.session_state.answered = False
-    if 'feedback' not in st.session_state:
-        st.session_state.feedback = ""
 
 def next_question():
     st.session_state.current_event = random.choice(HISTORICAL_EVENTS)
     st.session_state.answered = False
-    st.session_state.feedback = ""
+    st.rerun()
 
-# --- UI SETUP ---
-st.set_page_config(page_title="History Hitster", page_icon="⏳")
+# --- UI ---
+st.set_page_config(page_title="History Slider", layout="centered")
 initialize_game()
 
-# Sidebar
-with st.sidebar:
-    st.title("📜 Anleitung")
-    st.write("""
-    1. Schätze das Jahr des Ereignisses.
-    2. Gib deine Schätzung ein.
-    3. Erhalte Punkte für Präzision!
-    """)
-    st.markdown("---")
-    st.metric("Dein Score", st.session_state.score)
-    if st.button("Spiel zurücksetzen"):
-        st.session_state.score = 0
-        next_question()
-        st.rerun()
-
-# Hauptbereich
-st.title("⏳ History Hitster")
-st.subheader("Wann passierte dieses Ereignis?")
+st.title("🎯 History Timeline Slider")
+st.write(f"Aktueller Score: **{st.session_state.score}**")
 
 event = st.session_state.current_event
-st.info(f"### Ereignis: **{event['event']}**")
 
-# Eingabe-Bereich
+# Card-Design für das Ereignis
+st.markdown(f"""
+<div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b;">
+    <h2 style="margin: 0;">{event['event']}</h2>
+</div>
+""", unsafe_allow_html=True)
+
+st.write("") # Abstand
+
+# --- DER ZEITSTRAHL (SLIDER) ---
+# Wir nutzen den Range aus den Daten, damit der Slider immer Sinn macht
+min_year, max_year = event['range']
+
 if not st.session_state.answered:
-    user_guess = st.number_input("Gib das Jahr ein (nutze Minus für v. Chr.):", value=2000, step=1)
+    # Der Slider als Zeitlinie
+    user_guess = st.slider(
+        "Bewege den Regler auf das richtige Jahr:",
+        min_value=min_year,
+        max_value=max_year,
+        value=sum(event['range']) // 2 # Startet in der Mitte des Bereichs
+    )
     
-    if st.button("Antwort prüfen"):
+    if st.button("Zeitpunkt festlegen 📍", use_container_width=True):
         st.session_state.answered = True
-        correct_year = event['year']
-        diff = abs(user_guess - correct_year)
-        
-        if diff == 0:
-            st.session_state.feedback = "PERFEKT! 🎯 Genau getroffen (+10 Punkte)"
-            st.session_state.score += 10
-        elif diff <= 5:
-            st.session_state.feedback = f"Fast! Nur {diff} Jahre daneben. (+5 Punkte). Es war {correct_year}."
-            st.session_state.score += 5
-        elif diff <= 20:
-            st.session_state.feedback = f"Gute Schätzung! {diff} Jahre Differenz. (+2 Punkte). Es war {correct_year}."
-            st.session_state.score += 2
-        else:
-            st.session_state.feedback = f"Leider weit daneben. Es war {correct_year}. (0 Punkte)"
-        
+        st.session_state.last_guess = user_guess
         st.rerun()
 
-# Feedback-Anzeige
+# --- AUSWERTUNG ---
 if st.session_state.answered:
-    if "PERFEKT" in st.session_state.feedback:
-        st.success(st.session_state.feedback)
-    elif "+" in st.session_state.feedback:
-        st.warning(st.session_state.feedback)
+    guess = st.session_state.last_guess
+    correct = event['year']
+    diff = abs(guess - correct)
+    
+    # Anzeige der Positionen
+    st.info(f"Deine Wahl: **{guess}** | Lösung: **{correct}**")
+    
+    if diff == 0:
+        st.success("🎯 Perfekt! Du bist ein Historiker!")
+        st.session_state.score += 10
+    elif diff <= 3:
+        st.warning(f"Fast! Nur {diff} Jahre daneben.")
+        st.session_state.score += 5
     else:
-        st.error(st.session_state.feedback)
-        
-    if st.button("Nächstes Ereignis ➡️"):
-        next_question()
-        st.rerun()
+        st.error(f"Leider daneben. Differenz: {diff} Jahre.")
 
-# Level-Anzeige basierend auf Score
-st.markdown("---")
-level = st.session_state.score // 20
-st.write(f"**Aktuelles Level: {level}** 🎖️")
+    if st.button("Nächstes Ereignis ➡️", use_container_width=True):
+        next_question()
