@@ -108,9 +108,9 @@ else:
     
     st.markdown(f"""
         <div class="hitster-card" style="border-color: {'#28a745' if diff <= 10 else '#dc3545'}">
-            <div style="color: #9135DC;">Das richtige Jahr war:</div>
+            <div style="color: #888;">Das richtige Jahr war:</div>
             <div class="year-display">{correct}</div>
-            <div style="margin-top: 10px;">Deine Schätzung: {guess}</div>
+            <div style="color: #888;">Deine Schätzung: {guess}</div>
         </div>
     """, unsafe_allow_html=True)
 
