@@ -20,7 +20,7 @@ st.markdown("""
         border: none;
     }
     .hitster-card {
-        background: linear-gradient(145deg, #1e1e1e, #6969CF);
+        background: linear-gradient(145deg, #1e1e1e, #2a2a2a);
         border-radius: 15px;
         padding: 30px;
         text-align: center;
